@@ -20,6 +20,7 @@ export default function LoginPage() {
 
       if (data.success) {
         console.log("Login berhasil!");
+        localStorage.setItem("isLoggedIn", "true");
         navigate("/dashboard"); // ✅ arahkan user ke dashboard
       } else {
         alert(data.message || "Login gagal");
