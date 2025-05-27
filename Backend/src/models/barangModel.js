@@ -1,4 +1,4 @@
-const { queryAsync } = require('../config/db');
+const { queryAsync } = require('./db');
 
 async function getAllBarang() {
   const result = await queryAsync("SELECT * FROM Barang");

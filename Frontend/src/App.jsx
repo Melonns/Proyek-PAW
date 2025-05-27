@@ -1,28 +1,15 @@
-import { useState } from 'react'
-import cuyLogo from './assets/logo.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LoginPage from "./Login";
+import Dashboard from "./Dashboard";
 
 function App() {
-    const [count, setCount] = useState(0)
-
-    return (
-        <div className="App">
-        <div>
-            <a href="https://youtube.com/deaafrizal" target="_blank">
-            <img src={cuyLogo} className="logo cuy" alt="Cuy logo" />
-            </a>
-        </div>
-        <h1>🏆 REACTVITE PACK 🏆</h1>
-        <div className="card">
-            <button onClick={() => setCount((count) => count + 1)}>
-            realtime click {count}
-            </button>
-        </div>
-        <p className="read-the-docs">
-            how to run this pack: npm i & npm run dev on your terminal.
-        </p>
-        </div>
-    )
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      {/* Tambahkan rute lain di sini jika diperlukan */}
+    </Routes>
+  );
 }
 
-export default App
+export default App;
