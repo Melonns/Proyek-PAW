@@ -102,7 +102,7 @@ export default function Dashboard() {
               }
               className="text-sm bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600"
             >
-              🔍 Lihat Detail
+              Lihat Detail
             </button>
           </div>
         ))}
@@ -112,7 +112,7 @@ export default function Dashboard() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold mb-4">
-            🕒 Riwayat Transaksi Terkini
+            Riwayat Transaksi Terkini
           </h2>
           <button className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             ➕ Tambah Transaksi

@@ -1,0 +1,33 @@
+CREATE DATABASE IF NOT EXISTS mua_attire;
+USE mua_attire;
+
+CREATE TABLE transaksi (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  kode_transaksi VARCHAR(50) NOT NULL,
+  tanggal DATETIME NOT NULL,
+  klien VARCHAR(100) NOT NULL,
+  sumber VARCHAR(100) DEFAULT 'Internal', -- bisa Internal atau Pihak Ketiga
+  status ENUM('Selesai', 'Batal') NOT NULL DEFAULT 'Selesai'
+);
+
+CREATE TABLE layanan (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nama VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE detail_transaksi (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  transaksi_id INT NOT NULL,
+  layanan_id INT NOT NULL,
+  jumlah INT NOT NULL,
+  FOREIGN KEY (transaksi_id) REFERENCES transaksi(id) ON DELETE CASCADE,
+  FOREIGN KEY (layanan_id) REFERENCES layanan(id) ON DELETE CASCADE
+);
+
+CREATE TABLE pengeluaran (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tanggal DATE NOT NULL,
+  keterangan TEXT NOT NULL,
+  jumlah INT NOT NULL,
+  kategori VARCHAR(100) NOT NULL
+);
