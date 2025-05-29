@@ -1,68 +1,184 @@
 import React from "react";
 
 export default function Dashboard() {
-  const transaksi = [
-    { tanggal: "2025-05-27", keterangan: "Wisuda 4 orang", tipe: "masuk", jumlah: 1900000 },
-    { tanggal: "2025-05-27", keterangan: "Cetak foto", tipe: "keluar", jumlah: 55000 },
-    { tanggal: "2025-05-27", keterangan: "Honor stylist", tipe: "keluar", jumlah: 85000 },
-    { tanggal: "2025-05-26", keterangan: "Sewa jas atasan", tipe: "masuk", jumlah: 120000 },
+  const stats = [
+    {
+      label: "Total Transaksi Sewa Baju",
+      total: "Rp 15.2M",
+      jumlah: "42 transaksi",
+      icon: "👗",
+      bg: "bg-pink-100",
+    },
+    {
+      label: "Total Transaksi MUA",
+      total: "Rp 18.5M",
+      jumlah: "35 transaksi",
+      icon: "🎨",
+      bg: "bg-purple-100",
+    },
+    {
+      label: "Total Transaksi Photo",
+      total: "Rp 12.8M",
+      jumlah: "28 transaksi",
+      icon: "📷",
+      bg: "bg-blue-100",
+    },
+    {
+      label: "Total Semua Transaksi",
+      total: "Rp 46.5M",
+      jumlah: "105 transaksi",
+      icon: "💵",
+      bg: "bg-green-100",
+    },
   ];
 
-  const totalMasuk = transaksi.filter(t => t.tipe === "masuk").reduce((acc, curr) => acc + curr.jumlah, 0);
-  const totalKeluar = transaksi.filter(t => t.tipe === "keluar").reduce((acc, curr) => acc + curr.jumlah, 0);
-  const saldo = totalMasuk - totalKeluar;
+  const transaksi = [
+    {
+      id: "TRX-001",
+      klien: "Sarah Johnson",
+      inisial: "SJ",
+      layanan: "MUA",
+      jumlah: 850000,
+      tanggal: "22 Des 2024",
+      waktu: "14:30",
+      status: "Selesai",
+    },
+    {
+      id: "TRX-002",
+      klien: "Maria Garcia",
+      inisial: "MG",
+      layanan: "Sewa Baju",
+      jumlah: 450000,
+      tanggal: "22 Des 2024",
+      waktu: "13:15",
+      status: "Selesai",
+    },
+    {
+      id: "TRX-003",
+      klien: "Lisa Chen",
+      inisial: "LC",
+      layanan: "Photo Session",
+      jumlah: 750000,
+      tanggal: "21 Des 2024",
+      waktu: "16:45",
+      status: "Selesai",
+    },
+    {
+      id: "TRX-004",
+      klien: "Anna Putri",
+      inisial: "AP",
+      layanan: "MUA + Sewa Baju",
+      jumlah: 1200000,
+      tanggal: "21 Des 2024",
+      waktu: "12:00",
+      status: "Selesai",
+    },
+  ];
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-indigo-600 mb-2">Dashboard Keuangan</h1>
-      <p className="text-gray-600 mb-6">Rekap pemasukan dan pengeluaran berdasarkan transaksi</p>
+    <div className="p-6 bg-pink-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-pink-600 mb-2">
+        Dashboard MUA Studio
+      </h1>
+      <p className="text-gray-600 mb-6">
+        Overview transaksi dan aktivitas terkini
+      </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatBox label="Total Masuk" value={`Rp ${totalMasuk.toLocaleString()}`} color="green" />
-        <StatBox label="Total Keluar" value={`Rp ${totalKeluar.toLocaleString()}`} color="red" />
-        <StatBox label="Saldo" value={`Rp ${saldo.toLocaleString()}`} color="blue" />
+      {/* Stat boxes */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {stats.map((s, i) => (
+          <div key={i} className={`rounded-lg p-4 shadow ${s.bg}`}>
+            <div className="text-3xl mb-2">{s.icon}</div>
+            <h2 className="text-xl font-semibold">{s.total}</h2>
+            <p className="text-sm text-gray-700">{s.jumlah}</p>
+            <p className="text-sm text-gray-600 mb-2">{s.label}</p>
+            <button
+              onClick={() =>
+                navigate(
+                  `/transaksi-detail/${s.label
+                    .replaceAll(" ", "-")
+                    .toLowerCase()}`
+                )
+              }
+              className="text-sm bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600"
+            >
+              🔍 Lihat Detail
+            </button>
+          </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded shadow p-4">
-        <h2 className="text-xl font-semibold mb-4">Riwayat Transaksi Terbaru</h2>
-        <table className="w-full text-left border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2">Tanggal</th>
-              <th className="p-2">Keterangan</th>
-              <th className="p-2">Tipe</th>
-              <th className="p-2">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transaksi.map((t, i) => (
-              <tr key={i} className="border-t">
-                <td className="p-2">{t.tanggal}</td>
-                <td className="p-2">{t.keterangan}</td>
-                <td className={`p-2 ${t.tipe === "masuk" ? "text-green-600" : "text-red-600"}`}>
-                  {t.tipe}
-                </td>
-                <td className="p-2">Rp {t.jumlah.toLocaleString()}</td>
+      {/* Riwayat transaksi */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold mb-4">
+            🕒 Riwayat Transaksi Terkini
+          </h2>
+          <button className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            ➕ Tambah Transaksi
+          </button>
+        </div>
+        <div className="overflow-auto">
+          <table className="w-full text-left min-w-[1000px] text-sm">
+            <thead className="bg-gray-100 text-gray-600 text-sm">
+              <tr>
+                <th className="p-3">ID Transaksi</th>
+                <th className="p-3">Klien</th>
+                <th className="p-3">Layanan</th>
+                <th className="p-3">Jumlah</th>
+                <th className="p-3">Tanggal & Waktu</th>
+                <th className="p-3">Status</th>
+                <th className="px-2 py-2 w-[120px]">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {transaksi.map((t, i) => (
+                <tr key={i} className="border-t">
+                  <td className="p-3 font-medium">{t.id}</td>
+                  <td className="p-3 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center text-sm font-bold">
+                      {t.inisial}
+                    </div>
+                    {t.klien}
+                  </td>
+                  <td className="p-3">{t.layanan}</td>
+                  <td className="p-3 text-green-600 font-semibold">
+                    Rp {t.jumlah.toLocaleString()}
+                  </td>
+                  <td className="p-3 text-sm text-gray-700">
+                    {t.tanggal}
+                    <br />
+                    {t.waktu}
+                  </td>
+                  <td className="p-3">
+                    <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+                      {t.status}
+                    </span>
+                  </td>
+
+                  <td className="p-3 flex gap-2">
+                    <button
+                      onClick={() => alert(`Edit ${t.id}`)}
+                      className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() =>
+                        confirm(`Hapus transaksi ${t.id}?`) &&
+                        alert(`Dihapus: ${t.id}`)
+                      }
+                      className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                    >
+                      🗑️ Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function StatBox({ label, value, color }) {
-  const colors = {
-    green: "bg-green-100 text-green-700",
-    red: "bg-red-100 text-red-700",
-    blue: "bg-blue-100 text-blue-700",
-  };
-
-  return (
-    <div className={`rounded shadow p-4 ${colors[color]} font-semibold`}>
-      <p>{label}</p>
-      <h2 className="text-2xl">{value}</h2>
     </div>
   );
 }
