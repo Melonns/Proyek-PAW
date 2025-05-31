@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
+import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
+
+import Swal from "sweetalert2";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -8,6 +11,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [kategoriStats, setKategoriStats] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [showPengeluaranModal, setShowPengeluaranModal] = useState(false);
+  const [selectedTransaksiId, setSelectedTransaksiId] = useState(null);
+  const [total, setTotal] = useState(null);
 
   useEffect(() => {
     fetch("http://localhost:3000/api/transaksi")
@@ -24,11 +31,85 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/transaksi/statistik")
+    fetch("http://localhost:3000/api/transaksi")
       .then((res) => res.json())
-      .then((data) => setKategoriStats(data))
-      .catch((err) => console.error("Gagal fetch statistik:", err));
+      .then((data) => {
+        setTransaksi(data);
+
+        // Hitung total pendapatan, pengeluaran, dan untung
+        const totalPendapatan = data.reduce(
+          (sum, t) => sum + t.total_pendapatan,
+          0
+        );
+        const totalPengeluaran = data.reduce(
+          (sum, t) => sum + t.total_pengeluaran,
+          0
+        );
+        const totalUntung = data.reduce((sum, t) => sum + t.total_untung, 0);
+
+        setTotal({
+          pendapatan: totalPendapatan,
+          pengeluaran: totalPengeluaran,
+          untung: totalUntung,
+        });
+      });
   }, []);
+
+  useEffect(() => {
+    fetch("http://localhost:3000/api/transaksi")
+      .then((res) => res.json())
+      .then((data) => {
+        setTransaksi(data);
+
+        const transaksiSelesai = data.filter((t) => t.status === "Selesai");
+
+        const totalMua = transaksiSelesai
+          .filter((t) => t.layanan.includes("MUA"))
+          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
+
+        const totalFoto = transaksiSelesai
+          .filter((t) => t.layanan.includes("Foto"))
+          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
+
+        const totalSewa = transaksiSelesai
+          .filter((t) => t.layanan.includes("Sewa Baju"))
+          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
+
+        const totalSemua = transaksiSelesai.reduce(
+          (sum, t) => sum + Number(t.total_untung || 0),
+          0
+        );
+
+        const countMua = transaksiSelesai.filter((t) =>
+          t.layanan.includes("MUA")
+        ).length;
+        const countFoto = transaksiSelesai.filter((t) =>
+          t.layanan.includes("Foto")
+        ).length;
+        const countSewa = transaksiSelesai.filter((t) =>
+          t.layanan.includes("Sewa Baju")
+        ).length;
+
+        setKategoriStats({
+          total_mua: totalMua,
+          total_foto: totalFoto,
+          total_sewa_baju: totalSewa,
+          total_semua: totalSemua,
+          jumlah_mua: countMua,
+          jumlah_foto: countFoto,
+          jumlah_sewa_baju: countSewa,
+          jumlah_transaksi: transaksiSelesai.length,
+        });
+
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (editData) {
+      setShowModal(true); // ⬅️ baru buka modal setelah editData tidak null
+    }
+  }, [editData]);
 
   const handleDeleteTransaksi = (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
@@ -38,6 +119,13 @@ export default function Dashboard() {
         .then((res) => {
           if (res.ok) {
             setTransaksi(transaksi.filter((t) => t.id !== id));
+            Swal.fire({
+              icon: "success",
+              title: "Transaksi Dihapus",
+              text: "Transaksi berhasil dihapus.",
+            }).then(() => {
+              window.location.reload();
+            });
           } else {
             console.error("Gagal menghapus transaksi.");
           }
@@ -78,7 +166,7 @@ export default function Dashboard() {
           bg: "bg-blue-100",
         },
         {
-          label: "Total Semua Transaksi",
+          label: "Total Semua Transaksi Bersih",
           total: `Rp ${Number(kategoriStats.total_semua).toLocaleString(
             "id-ID"
           )}`,
@@ -88,6 +176,13 @@ export default function Dashboard() {
         },
       ]
     : [];
+
+  const routeMap = {
+    "Total Transaksi Sewa Baju": "sewa-baju",
+    "Total Transaksi MUA": "mua",
+    "Total Transaksi Photo": "foto",
+    "Total Semua Transaksi Bersih": "semua",
+  };
 
   return (
     <div className="p-6 bg-pink-50 min-h-screen">
@@ -109,13 +204,9 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-2">{s.label}</p>
               <button
                 onClick={() =>
-                  navigate(
-                    `/transaksi-detail/${s.label
-                      .replaceAll(" ", "-")
-                      .toLowerCase()}`
-                  )
+                  navigate(`/transaksi-detail/${routeMap[s.label]}`)
                 }
-                className="text-sm bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600"
+                className="text-sm bg-indigo-500 text-white px-3 py-2 rounded hover:bg-indigo-600"
               >
                 Lihat Detail
               </button>
@@ -146,32 +237,79 @@ export default function Dashboard() {
             <div className="overflow-auto">
               {showModal && (
                 <ModalTambahTransaksi
-                  onClose={() => setShowModal(false)}
+                  onClose={() => {
+                    setShowModal(false);
+                    setEditData(null);
+                  }}
+                  initialData={editData}
                   onSubmit={(form) => {
-                    fetch("http://localhost:3000/api/transaksi", {
-                      method: "POST",
+                    const method = editData ? "PUT" : "POST";
+                    const url = editData
+                      ? `http://localhost:3000/api/transaksi/${editData.id}`
+                      : `http://localhost:3000/api/transaksi`;
+
+                    fetch(url, {
+                      method,
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(form),
                     })
                       .then((res) => res.json())
-                      .then(() => {
-                        setShowModal(false);
-                        window.location.reload();
+                      .then((data) => {
+                        if (
+                          data.message === "Kode transaksi sudah digunakan."
+                        ) {
+                          Swal.fire({
+                            icon: "warning",
+                            title: "Kode Duplikat",
+                            text: "Kode transaksi sudah digunakan. Silakan gunakan kode lain.",
+                          });
+                        } else if (
+                          data.message === "Transaksi berhasil ditambahkan" ||
+                          data.message === "Transaksi berhasil diperbarui"
+                        ) {
+                          Swal.fire({
+                            icon: "success",
+                            title: "Berhasil",
+                            text: editData
+                              ? "Transaksi berhasil diperbarui."
+                              : "Transaksi baru telah ditambahkan.",
+                          }).then(() => {
+                            setShowModal(false);
+                            setEditData(null);
+                            window.location.reload(); // bisa diganti ke refetch data kalau kamu pakai state
+                          });
+                        }
                       })
                       .catch((err) => {
                         console.error("Gagal simpan:", err);
+                        Swal.fire({
+                          icon: "error",
+                          title: "Gagal Menyimpan",
+                          text: "Terjadi kesalahan saat menyimpan transaksi. Silakan coba lagi.",
+                        });
                       });
                   }}
                 />
               )}
+
+              {showPengeluaranModal && (
+                <ModalTambahPengeluaran
+                  transaksiId={selectedTransaksiId}
+                  onClose={() => {
+                    setShowPengeluaranModal(false);
+                    setSelectedTransaksiId(null);
+                  }}
+                />
+              )}
+
               <table className="w-full text-sm text-center">
                 <thead className="bg-gray-100 text-gray-600">
                   <tr>
                     <th className="p-3 align-middle">ID Transaksi</th>
                     <th className="p-3 align-middle">Klien</th>
                     <th className="p-3 align-middle">Layanan</th>
-                    <th className="p-3 align-middle">Jumlah</th>
-                    <th className="p-3 align-middle">Tanggal & Waktu</th>
+                    <th className="p-3 align-middle">Pendapatan Bersih</th>
+                    <th className="p-3 align-middle">Tanggal</th>
                     <th className="p-3 align-middle">Status</th>
                     <th className="p-3 align-middle">Aksi</th>
                   </tr>
@@ -179,12 +317,12 @@ export default function Dashboard() {
                 <tbody>
                   {transaksi.map((t, i) => (
                     <tr key={i} className="border-t">
-                      <td className="p-3 align-middle">{t.id}</td>
+                      <td className="p-3 align-middle">{t.kode_transaksi}</td>
 
                       <td className="p-3 align-middle">
                         <div className="flex justify-center items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center text-sm font-bold">
-                            {t.inisial}
+                            {t.klien?.charAt(0).toUpperCase()}
                           </div>
                           <span>{t.klien}</span>
                         </div>
@@ -193,7 +331,7 @@ export default function Dashboard() {
                       <td className="p-3 align-middle">{t.layanan}</td>
 
                       <td className="p-3 align-middle text-green-600 font-semibold">
-                        Rp {Number(t.total || 0).toLocaleString("id-ID")}
+                        Rp {Number(t.total_untung || 0).toLocaleString("id-ID")}
                       </td>
 
                       <td className="p-3 align-middle text-sm text-gray-700">
@@ -205,7 +343,21 @@ export default function Dashboard() {
                       </td>
 
                       <td className="p-3 align-middle">
-                        <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+                        <span
+                          className={`text-xs px-3 py-2 rounded-full
+                            ${
+                              t.status === "Selesai"
+                                ? "bg-green-300 text-green-700"
+                                : ""
+                            }
+                            ${
+                              t.status === "Pending"
+                                ? "bg-yellow-300 text-yellow-700"
+                                : ""
+                            }
+                            ${t.status === "Batal" ? "bg-red-300" : ""}
+                          `}
+                        >
                           {t.status}
                         </span>
                       </td>
@@ -213,16 +365,30 @@ export default function Dashboard() {
                       <td className="p-3 align-middle">
                         <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => alert(`Edit ${t.id}`)}
-                            className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                            onClick={() => {
+                              setSelectedTransaksiId(t.id); // ID transaksi yang dipilih
+                              setShowPengeluaranModal(true);
+                            }}
+                            className="text-sm bg-yellow-500 text-white px-3 py-2 rounded hover:bg-yellow-600"
+                          >
+                            💸 Tambah Pengeluaran
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const res = await fetch(
+                                `http://localhost:3000/api/transaksi/${t.id}`
+                              );
+                              const data = await res.json();
+                              setEditData(data); // <-- inilah yang akan dikirim ke FormTambahTransaksi
+                              setShowModal(true);
+                            }}
+                            className="text-sm bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600"
                           >
                             ✏️ Edit
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteTransaksi(t.id)
-                            }
-                            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
+                            onClick={() => handleDeleteTransaksi(t.id)}
+                            className="text-sm bg-red-500 text-white px-3 py-2 rounded hover:bg-red-700"
                           >
                             🗑️ Hapus
                           </button>

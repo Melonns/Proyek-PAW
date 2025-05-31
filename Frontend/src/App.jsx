@@ -3,6 +3,7 @@ import LoginPage from "./Login";
 import Dashboard from "./Dashboard";
 import DashboardKeuangan from "./DashboardKeuangan";
 import PrivateRoute from "./components/PrivateRoute";
+import TransaksiDetail from "./TransaksiDetail";
 
 function App() {
   return (
@@ -17,7 +18,22 @@ function App() {
           </PrivateRoute>
         }
       />
-      <Route path="/dashboardkeuangan" element={<DashboardKeuangan />} />
+      <Route
+        path="/transaksi-detail/sewa-baju"
+        element={<TransaksiDetail kategori="Sewa Baju" />}
+      />
+      <Route
+        path="/transaksi-detail/mua"
+        element={<TransaksiDetail kategori="MUA" />}
+      />
+      <Route
+        path="/transaksi-detail/foto"
+        element={<TransaksiDetail kategori="Foto" />}
+      />
+      <Route
+        path="/transaksi-detail/semua"
+        element={<TransaksiDetail kategori="Semua" />}
+      />
     </Routes>
   );
 }
