@@ -12,6 +12,15 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
     setPengeluaran(updated);
   };
 
+  const [layananList, setLayananList] = useState([]);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/layanan`)
+      .then((res) => res.json())
+      .then((data) => setLayananList(data))
+      .catch((err) => console.error("Gagal fetch layanan:", err));
+  }, []);
+
   const handleSubmit = async () => {
     const valid = pengeluaran.every((p) => p.keterangan && p.jumlah);
     if (!valid) {
@@ -25,25 +34,20 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
 
     try {
       // Ambil tanggal transaksi
-      const res = await fetch(
-        `${BASE_URL}/api/transaksi/${transaksiId}`
-      );
+      const res = await fetch(`${BASE_URL}/api/transaksi/${transaksiId}`);
       const transaksi = await res.json();
       const tanggalTransaksi = transaksi.tanggal.slice(0, 10); // Ambil tanggal dalam format YYYY-MM-DD
 
       // Kirim data pengeluaran
       for (const p of pengeluaran) {
-        await fetch(
-          `${BASE_URL}/api/transaksi/${transaksiId}/pengeluaran`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...p,
-              tanggal: tanggalTransaksi,
-            }),
-          }
-        );
+        await fetch(`${BASE_URL}/api/transaksi/${transaksiId}/pengeluaran`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...p,
+            tanggal: tanggalTransaksi,
+          }),
+        });
       }
 
       await Swal.fire({
@@ -84,12 +88,18 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
               placeholder="Jumlah"
               className="w-full border rounded px-2 py-2"
             />
-            <input
+            <select
               value={p.kategori}
               onChange={(e) => handleChange(i, "kategori", e.target.value)}
-              placeholder="Kategori"
               className="w-full border rounded px-2 py-2"
-            />
+            >
+              <option value="">Pilih Layanan</option>
+              {layananList.map((l) => (
+                <option key={l.id} value={l.nama}>
+                  {l.nama}
+                </option>
+              ))}
+            </select>
           </div>
         ))}
         <div className="flex justify-between mt-4">

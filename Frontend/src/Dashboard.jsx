@@ -17,6 +17,8 @@ export default function Dashboard() {
   const [selectedTransaksiId, setSelectedTransaksiId] = useState(null);
   const [selectedTanggal, setSelectedTanggal] = useState(null);
   const [total, setTotal] = useState(null);
+  const [transaksiSummary, setTransaksiSummary] = useState([]);
+  const [loadingSummary, setLoadingSummary] = useState(true);
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/transaksi`)
@@ -65,41 +67,41 @@ export default function Dashboard() {
 
         const transaksiSelesai = data.filter((t) => t.status === "Selesai");
 
-        const totalMua = transaksiSelesai
-          .filter((t) => t.layanan.includes("MUA"))
-          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
+        const totalPerKategori = {
+          MUA: 0,
+          Foto: 0,
+          "Sewa Baju": 0,
+        };
+        const countPerKategori = {
+          MUA: 0,
+          Foto: 0,
+          "Sewa Baju": 0,
+        };
 
-        const totalFoto = transaksiSelesai
-          .filter((t) => t.layanan.includes("Foto"))
-          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
+        transaksiSelesai.forEach((t) => {
+          const layananArr = (t.layanan || "").split(" + ");
+          const untungPerLayanan =
+            Number(t.total_untung || 0) / layananArr.length;
 
-        const totalSewa = transaksiSelesai
-          .filter((t) => t.layanan.includes("Sewa Baju"))
-          .reduce((sum, t) => sum + Number(t.total_untung || 0), 0);
-
-        const totalSemua = transaksiSelesai.reduce(
-          (sum, t) => sum + Number(t.total_untung || 0),
-          0
-        );
-
-        const countMua = transaksiSelesai.filter((t) =>
-          t.layanan.includes("MUA")
-        ).length;
-        const countFoto = transaksiSelesai.filter((t) =>
-          t.layanan.includes("Foto")
-        ).length;
-        const countSewa = transaksiSelesai.filter((t) =>
-          t.layanan.includes("Sewa Baju")
-        ).length;
+          layananArr.forEach((layanan) => {
+            if (totalPerKategori[layanan] !== undefined) {
+              totalPerKategori[layanan] += untungPerLayanan;
+              countPerKategori[layanan]++;
+            }
+          });
+        });
 
         setKategoriStats({
-          total_mua: totalMua,
-          total_foto: totalFoto,
-          total_sewa_baju: totalSewa,
-          total_semua: totalSemua,
-          jumlah_mua: countMua,
-          jumlah_foto: countFoto,
-          jumlah_sewa_baju: countSewa,
+          total_mua: totalPerKategori["MUA"],
+          total_foto: totalPerKategori["Foto"],
+          total_sewa_baju: totalPerKategori["Sewa Baju"],
+          total_semua: transaksiSelesai.reduce(
+            (sum, t) => sum + Number(t.total_untung || 0),
+            0
+          ),
+          jumlah_mua: countPerKategori["MUA"],
+          jumlah_foto: countPerKategori["Foto"],
+          jumlah_sewa_baju: countPerKategori["Sewa Baju"],
           jumlah_transaksi: transaksiSelesai.length,
         });
 
@@ -112,6 +114,19 @@ export default function Dashboard() {
       setShowModal(true); // ⬅️ baru buka modal setelah editData tidak null
     }
   }, [editData]);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/transaksi/summary`)
+      .then((res) => res.json())
+      .then((data) => {
+        setTransaksiSummary(data);
+        setLoadingSummary(false);
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil data summary transaksi:", err);
+        setLoadingSummary(false);
+      });
+  }, []);
 
   const handleDeleteTransaksi = (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
@@ -317,7 +332,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transaksi.map((t, i) => (
+                  {transaksiSummary.map((t, i) => (
                     <tr key={i} className="border-t">
                       <td className="p-3 align-middle">{t.kode_transaksi}</td>
 
@@ -368,7 +383,7 @@ export default function Dashboard() {
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => {
-                              setSelectedTransaksiId(t.id); // ID transaksi yang dipilih
+                              setSelectedTransaksiId(t.transaksi_id); // ID transaksi yang dipilih
                               setShowPengeluaranModal(true);
                             }}
                             className="text-sm bg-yellow-500 text-white px-3 py-2 rounded hover:bg-yellow-600"
@@ -378,7 +393,7 @@ export default function Dashboard() {
                           <button
                             onClick={async () => {
                               const res = await fetch(
-                                `${BASE_URL}/api/transaksi/${t.id}`
+                                `${BASE_URL}/api/transaksi/${t.transaksi_id}`
                               );
                               const data = await res.json();
                               setEditData(data); // <-- inilah yang akan dikirim ke FormTambahTransaksi
@@ -389,7 +404,7 @@ export default function Dashboard() {
                             ✏️ Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteTransaksi(t.id)}
+                            onClick={() => handleDeleteTransaksi(t.transaksi_id)}
                             className="text-sm bg-red-500 text-white px-3 py-2 rounded hover:bg-red-700"
                           >
                             🗑️ Hapus

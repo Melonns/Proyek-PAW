@@ -13,11 +13,25 @@ const layananRoutes = require("./routes/layananRoutes");
 const app = express();
 const port = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  "https://airy-laughter-production.up.railway.app",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: "https://airy-laughter-production.up.railway.app", // untuk testing, atau whitelist domain FE di production
+    origin: function (origin, callback) {
+      // Allow requests with no origin (e.g., mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
   })
 );
+
 app.use(express.json());
 
 // Routes

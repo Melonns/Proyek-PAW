@@ -11,6 +11,16 @@ exports.getAllTransaksi = async (req, res) => {
   }
 };
 
+exports.getTransaksiSummary = async (req, res) => {
+  try {
+    const data = await transaksiModel.getTransaksiSummary();
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Gagal mengambil summary transaksi:", err);
+    res.status(500).json({ error: "Gagal Mengambil Summary Transaksi" });
+  }
+};
+
 // exports.getAllTransaksi = async (req, res) => {
 //   const data = await transaksiModel.getAllTransaksi();
 //   res.json(data);
@@ -58,7 +68,6 @@ exports.getTransaksiById = async (req, res) => {
   }
 };
 
-
 // POST: Tambah transaksi baru + detail
 exports.insertTransaksi = async (req, res) => {
   try {
@@ -89,7 +98,6 @@ exports.updateTransaksi = async (req, res) => {
   }
 };
 
-
 // DELETE: Hapus transaksi + detail + pengeluaran
 exports.deleteTransaksi = async (req, res) => {
   const id = req.params.id;
@@ -103,7 +111,6 @@ exports.deleteTransaksi = async (req, res) => {
   }
 };
 
-
 // POST: Tambah pengeluaran (khusus satu transaksi)
 exports.insertPengeluaran = async (req, res) => {
   const transaksi_id = req.params.id;
@@ -113,7 +120,7 @@ exports.insertPengeluaran = async (req, res) => {
     const result = await transaksiModel.insertPengeluaran(data); // ✅ pakai await
     res.status(201).json({
       message: "Pengeluaran berhasil ditambahkan",
-      result
+      result,
     });
   } catch (err) {
     console.error("❌ Gagal menambahkan pengeluaran:", err);
@@ -121,17 +128,17 @@ exports.insertPengeluaran = async (req, res) => {
   }
 };
 
-
 // GET: Ambil semua pengeluaran per transaksi
 exports.getPengeluaranByTransaksiId = async (req, res) => {
   const transaksi_id = req.params.id;
 
   try {
-    const result = await transaksiModel.getPengeluaranByTransaksiId(transaksi_id);
+    const result = await transaksiModel.getPengeluaranByTransaksiId(
+      transaksi_id
+    );
     res.json(result);
   } catch (err) {
     console.error("❌ Gagal mengambil pengeluaran:", err);
     res.status(500).json({ error: "Gagal Mengambil Pengeluaran" });
   }
 };
-

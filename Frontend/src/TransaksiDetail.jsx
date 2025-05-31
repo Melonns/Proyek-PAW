@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
 import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
 
@@ -11,6 +12,7 @@ export default function TransaksiDetail({ kategori }) {
   const [showModal, setShowModal] = useState(false);
   const [showModalPengeluaran, setShowModalPengeluaran] = useState(false);
   const [selectedTransaksiId, setSelectedTransaksiId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/transaksi`)
@@ -19,7 +21,10 @@ export default function TransaksiDetail({ kategori }) {
         const filtered =
           kategori === "Semua"
             ? data
-            : data.filter((t) => t.layanan.includes(kategori));
+            : data.filter((t) => {
+                const layananArr = t.layanan?.split(" + ") || [];
+                return layananArr.length === 1 && layananArr[0] === kategori;
+              });
 
         setTransaksi(filtered);
         setLoading(false);
@@ -163,7 +168,7 @@ export default function TransaksiDetail({ kategori }) {
                     </span>
                   </td>
                   <td className="p-3 text-green-600 font-semibold">
-                    Rp {Number(t.total_pendapatan || 0).toLocaleString("id-ID")}
+                    Rp {Number(t.subtotal || 0).toLocaleString("id-ID")}
                   </td>
                   <td className="p-3 text-red-600 font-semibold">
                     Rp{" "}
@@ -207,6 +212,12 @@ export default function TransaksiDetail({ kategori }) {
           </tbody>
         </table>
       </div>
+      <button
+        className="mt-6 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        onClick={() => navigate("/dashboard")}
+      >
+        Kembali Ke Dashboard
+      </button>
     </div>
   );
 }

@@ -17,23 +17,64 @@ async function getAllTransaksi() {
   `);
 
   const [pengeluaran] = await db.query(`
-    SELECT transaksi_id, SUM(jumlah) AS total_pengeluaran
+    SELECT transaksi_id, kategori AS layanan, SUM(jumlah) AS total_pengeluaran
     FROM pengeluaran
-    GROUP BY transaksi_id
+    GROUP BY transaksi_id, kategori
   `);
 
-  // === Gabungkan manual di JS
+  // Map pengeluaran berdasarkan transaksi + layanan
   const pengeluaranMap = {};
-  pengeluaran.forEach(p => {
-    pengeluaranMap[p.transaksi_id] = p.total_pengeluaran;
+  pengeluaran.forEach((p) => {
+    pengeluaranMap[`${p.transaksi_id}-${p.layanan}`] = p.total_pengeluaran;
   });
 
+  const result = transaksi.map((row) => {
+    const key = `${row.id}-${row.layanan}`;
+    const pengeluaran = pengeluaranMap[key] || 0;
+    const untung = (row.subtotal || 0) - pengeluaran;
+
+    return {
+      ...row,
+      total_pengeluaran: pengeluaran,
+      total_untung: untung,
+    };
+  });
+
+  return result;
+}
+
+async function getTransaksiSummary() {
+  const [transaksi] = await db.query(`
+    SELECT 
+      t.id AS transaksi_id,
+      t.kode_transaksi,
+      t.klien,
+      t.tanggal,
+      t.status,
+      d.keterangan,
+      l.nama AS layanan,
+      d.jumlah,
+      d.harga,
+      (d.jumlah * d.harga) AS subtotal,
+      IFNULL((
+        SELECT SUM(jumlah) FROM pengeluaran WHERE transaksi_id = t.id
+      ), 0) AS total_pengeluaran,
+      0 AS total_untung -- dihitung nanti
+    FROM transaksi t
+    LEFT JOIN detail_transaksi d ON t.id = d.transaksi_id
+    LEFT JOIN layanan l ON d.layanan_id = l.id
+    ORDER BY t.tanggal DESC
+  `);
+
+  // Grouping manual
   const grouped = {};
 
   for (const row of transaksi) {
-    if (!grouped[row.id]) {
-      grouped[row.id] = {
-        id: row.id,
+    const id = row.transaksi_id;
+
+    if (!grouped[id]) {
+      grouped[id] = {
+        transaksi_id: id,
         kode_transaksi: row.kode_transaksi,
         klien: row.klien,
         tanggal: row.tanggal,
@@ -41,29 +82,31 @@ async function getAllTransaksi() {
         layanan: [],
         keterangan: [],
         total_pendapatan: 0,
-        total_pengeluaran: pengeluaranMap[row.id] || 0,
-        total_untung: 0,
+        total_pengeluaran: Number(row.total_pengeluaran || 0),
+        total_untung: 0, // dihitung nanti
       };
     }
 
-    if (row.layanan) grouped[row.id].layanan.push(row.layanan);
-    if (row.keterangan) grouped[row.id].keterangan.push(row.keterangan);
-    grouped[row.id].total_pendapatan += row.subtotal;
+    if (row.layanan) grouped[id].layanan.push(row.layanan);
+    if (row.keterangan) grouped[id].keterangan.push(row.keterangan);
+    grouped[id].total_pendapatan += Number(row.subtotal || 0);
   }
 
-  return Object.values(grouped).map(t => ({
+  // Hitung total untung
+  const summary = Object.values(grouped).map((t) => ({
     ...t,
     layanan: t.layanan.join(" + "),
     keterangan: t.keterangan.join(" + "),
     total_untung: t.total_pendapatan - t.total_pengeluaran,
   }));
-}
 
+  return summary;
+}
 
 // models/transaksiModel.js
 // async function getAllTransaksi() {
 //   const [results] = await db.query(`
-//     SELECT 
+//     SELECT
 //       t.id, t.kode_transaksi, t.klien, t.tanggal, t.status,
 //       d.keterangan,
 //       l.nama AS layanan,
@@ -262,4 +305,5 @@ module.exports = {
   deleteTransaksi,
   insertPengeluaran,
   getPengeluaranByTransaksiId,
+  getTransaksiSummary,
 };

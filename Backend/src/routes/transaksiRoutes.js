@@ -3,6 +3,7 @@ const router = express.Router();
 const transaksiController = require('../controllers/transaksiController');
 
 router.get('/', transaksiController.getAllTransaksi);
+router.get('/summary', transaksiController.getTransaksiSummary);
 router.get('/statistik', transaksiController.getStatistikKategori);
 router.get('/:id', transaksiController.getTransaksiById);
 router.post('/', transaksiController.insertTransaksi);
