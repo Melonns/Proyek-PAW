@@ -295,6 +295,7 @@ export default function Dashboard() {
               {showPengeluaranModal && (
                 <ModalTambahPengeluaran
                   transaksiId={selectedTransaksiId}
+                  tanggalTransaksi={selectedTanggal}
                   onClose={() => {
                     setShowPengeluaranModal(false);
                     setSelectedTransaksiId(null);

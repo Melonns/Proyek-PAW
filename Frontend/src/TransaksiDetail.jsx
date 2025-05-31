@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
+import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
 
 export default function TransaksiDetail({ kategori }) {
   const [transaksi, setTransaksi] = useState([]);
@@ -43,7 +44,7 @@ export default function TransaksiDetail({ kategori }) {
   };
 
   return (
-    <div className="p-6 bg-white rounded mx-auto">
+    <div className="p-4">
       {showModalPengeluaran && (
         <ModalTambahPengeluaran
           transaksiId={selectedTransaksiId}
@@ -54,42 +55,95 @@ export default function TransaksiDetail({ kategori }) {
         />
       )}
 
-      <h1 className="text-3xl font-bold text-pink-600 mb-6">
-        {kategori === "Semua" ? "Semua Transaksi" : `Transaksi ${kategori}`}
-      </h1>
-      <h2 className="text-2xl font-bold mb-4">Detail Transaksi {kategori}</h2>
+      {showModal && (
+        <ModalTambahTransaksi
+          onClose={() => {
+            setShowModal(false);
+            setEditData(null);
+          }}
+          initialData={editData}
+          onSubmit={(form) => {
+            const method = editData ? "PUT" : "POST";
+            const url = editData
+              ? `http://localhost:3000/api/transaksi/${editData.id}`
+              : `http://localhost:3000/api/transaksi`;
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : transaksi.length === 0 ? (
-        <p className="text-gray-500">Tidak ada transaksi ditemukan.</p>
-      ) : (
-        <table className="w-full text-sm text-left border">
-          <thead className="bg-gray-100">
+            fetch(url, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(form),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.message === "Kode transaksi sudah digunakan.") {
+                  Swal.fire({
+                    icon: "warning",
+                    title: "Kode Duplikat",
+                    text: "Kode transaksi sudah digunakan. Silakan gunakan kode lain.",
+                  });
+                } else if (
+                  data.message === "Transaksi berhasil ditambahkan" ||
+                  data.message === "Transaksi berhasil diperbarui"
+                ) {
+                  Swal.fire({
+                    icon: "success",
+                    title: "Berhasil",
+                    text: editData
+                      ? "Transaksi berhasil diperbarui."
+                      : "Transaksi baru telah ditambahkan.",
+                  }).then(() => {
+                    setShowModal(false);
+                    setEditData(null);
+                    window.location.reload(); // bisa diganti ke refetch data kalau kamu pakai state
+                  });
+                }
+              })
+              .catch((err) => {
+                console.error("Gagal simpan:", err);
+                Swal.fire({
+                  icon: "error",
+                  title: "Gagal Menyimpan",
+                  text: "Terjadi kesalahan saat menyimpan transaksi. Silakan coba lagi.",
+                });
+              });
+          }}
+        />
+      )}
+
+      <div className="bg-gradient-to-r from-blue-500 to-pink-500 text-white rounded-t-xl p-6 mb-6">
+        <h1 className="text-2xl font-bold">Transaksi {kategori}</h1>
+        <p className="text-sm opacity-90">
+          Kelola transaksi {kategori.toLowerCase()} Anda dengan mudah
+        </p>
+      </div>
+
+      <div className="overflow-x-auto shadow-md rounded-lg bg-white">
+        <table className="w-full text-sm text-center border-collapse">
+          <thead className="bg-gray-100 text-gray-600">
             <tr>
-              <th className="p-2 border">Kode</th>
-              <th className="p-2 border">Klien</th>
-              <th className="p-2 border">Tanggal</th>
-              <th className="p-2 border">Keterangan</th>
-              <th className="p-2 border">Status</th>
-              <th className="p-2 border">Pendapatan</th>
-              <th className="p-2 border">Pengeluaran</th>
-              <th className="p-2 border">Untung</th>
-              <th className="p-2 border">Aksi</th>
+              <th className="p-3">Kode</th>
+              <th className="p-3">Klien</th>
+              <th className="p-3">Tanggal</th>
+              <th className="p-3">Keterangan</th>
+              <th className="p-3">Status</th>
+              <th className="p-3 text-green-600">Pendapatan</th>
+              <th className="p-3 text-red-600">Pengeluaran</th>
+              <th className="p-3 text-blue-600">Untung</th>
+              <th className="p-3">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {transaksi.map((t) => (
-              <tr key={t.id} className="border-t">
-                <td className="p-2 border">{t.kode_transaksi}</td>
-                <td className="p-2 border">{t.klien}</td>
-                <td className="p-2 border">
+            {transaksi.map((t, i) => (
+              <tr key={i} className="border-t hover:bg-gray-50 transition">
+                <td className="p-3 font-semibold">{t.kode_transaksi}</td>
+                <td className="p-3">{t.klien}</td>
+                <td className="p-3">
                   {new Date(t.tanggal).toLocaleDateString("id-ID")}
                 </td>
-                <td className="p-2 border">{t.keterangan || "-"}</td>
-                <td className="p-2 border">
+                <td className="p-3">{t.keterangan || "-"}</td>
+                <td className="p-3">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${
                       t.status === "Selesai"
                         ? "bg-green-100 text-green-700"
                         : t.status === "Pending"
@@ -100,32 +154,39 @@ export default function TransaksiDetail({ kategori }) {
                     {t.status}
                   </span>
                 </td>
-                <td className="p-2 border text-green-600 font-medium">
-                  Rp {Number(t.total_pendapatan).toLocaleString("id-ID")}
+                <td className="p-3 text-green-600 font-semibold">
+                  Rp {Number(t.total_pendapatan || 0).toLocaleString("id-ID")}
                 </td>
-                <td className="p-2 border text-red-500 font-medium">
-                  Rp {Number(t.total_pengeluaran).toLocaleString("id-ID")}
+                <td className="p-3 text-red-600 font-semibold">
+                  Rp {Number(t.total_pengeluaran || 0).toLocaleString("id-ID")}
                 </td>
-                <td className="p-2 border text-blue-600 font-medium">
-                  Rp {Number(t.total_untung).toLocaleString("id-ID")}
+                <td className="p-3 text-blue-700 font-semibold">
+                  Rp {Number(t.total_untung || 0).toLocaleString("id-ID")}
                 </td>
-                <td className="p-3 align-middle">
-                  <div className="flex justify-center gap-2">
+                <td className="p-3">
+                  <div className="flex gap-2 justify-center flex-wrap">
                     <button
                       onClick={() => handleTambahPengeluaran(t)}
-                      className="text-sm bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500"
+                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
                     >
-                      💸 Tambah Pengeluaran
+                      💰 Tambah Pengeluaran
                     </button>
                     <button
-                      onClick={() => handleEdit(t)}
-                      className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                      onClick={async () => {
+                        const res = await fetch(
+                          `http://localhost:3000/api/transaksi/${t.id}`
+                        );
+                        const data = await res.json();
+                        setEditData(data);
+                        setShowModal(true);
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
                     >
                       ✏️ Edit
                     </button>
                     <button
                       onClick={() => handleDelete(t.id)}
-                      className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                     >
                       🗑️ Hapus
                     </button>
@@ -135,7 +196,7 @@ export default function TransaksiDetail({ kategori }) {
             ))}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   );
 }
