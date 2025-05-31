@@ -5,7 +5,7 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
   const [pengeluaran, setPengeluaran] = useState([
     { keterangan: "", jumlah: "", kategori: "" },
   ]);
-
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const handleChange = (i, key, val) => {
     const updated = [...pengeluaran];
     updated[i][key] = val;
@@ -26,15 +26,15 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
     try {
       // Ambil tanggal transaksi
       const res = await fetch(
-        `http://localhost:3000/api/transaksi/${transaksiId}`
+        `${BASE_URL}/api/transaksi/${transaksiId}`
       );
       const transaksi = await res.json();
-      const tanggalTransaksi = transaksi.tanggal;
+      const tanggalTransaksi = transaksi.tanggal.slice(0, 10); // Ambil tanggal dalam format YYYY-MM-DD
 
       // Kirim data pengeluaran
       for (const p of pengeluaran) {
         await fetch(
-          `http://localhost:3000/api/transaksi/${transaksiId}/pengeluaran`,
+          `${BASE_URL}/api/transaksi/${transaksiId}/pengeluaran`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

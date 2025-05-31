@@ -4,6 +4,7 @@ import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
 import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
 
 export default function TransaksiDetail({ kategori }) {
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const [transaksi, setTransaksi] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState(null);
@@ -12,7 +13,7 @@ export default function TransaksiDetail({ kategori }) {
   const [selectedTransaksiId, setSelectedTransaksiId] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/transaksi")
+    fetch(`${BASE_URL}/api/transaksi`)
       .then((res) => res.json())
       .then((data) => {
         const filtered =
@@ -32,7 +33,7 @@ export default function TransaksiDetail({ kategori }) {
 
   const handleDelete = (id) => {
     if (window.confirm("Yakin ingin menghapus transaksi ini?")) {
-      fetch(`http://localhost:3000/api/transaksi/${id}`, {
+      fetch(`${BASE_URL}/api/transaksi/${id}`, {
         method: "DELETE",
       }).then(() => window.location.reload());
     }
@@ -65,8 +66,8 @@ export default function TransaksiDetail({ kategori }) {
           onSubmit={(form) => {
             const method = editData ? "PUT" : "POST";
             const url = editData
-              ? `http://localhost:3000/api/transaksi/${editData.id}`
-              : `http://localhost:3000/api/transaksi`;
+              ? `${BASE_URL}/api/transaksi/${editData.id}`
+              : `${BASE_URL}/api/transaksi`;
 
             fetch(url, {
               method,
@@ -133,67 +134,76 @@ export default function TransaksiDetail({ kategori }) {
             </tr>
           </thead>
           <tbody>
-            {transaksi.map((t, i) => (
-              <tr key={i} className="border-t hover:bg-gray-50 transition">
-                <td className="p-3 font-semibold">{t.kode_transaksi}</td>
-                <td className="p-3">{t.klien}</td>
-                <td className="p-3">
-                  {new Date(t.tanggal).toLocaleDateString("id-ID")}
-                </td>
-                <td className="p-3">{t.keterangan || "-"}</td>
-                <td className="p-3">
-                  <span
-                    className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${
-                      t.status === "Selesai"
-                        ? "bg-green-100 text-green-700"
-                        : t.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {t.status}
-                  </span>
-                </td>
-                <td className="p-3 text-green-600 font-semibold">
-                  Rp {Number(t.total_pendapatan || 0).toLocaleString("id-ID")}
-                </td>
-                <td className="p-3 text-red-600 font-semibold">
-                  Rp {Number(t.total_pengeluaran || 0).toLocaleString("id-ID")}
-                </td>
-                <td className="p-3 text-blue-700 font-semibold">
-                  Rp {Number(t.total_untung || 0).toLocaleString("id-ID")}
-                </td>
-                <td className="p-3">
-                  <div className="flex gap-2 justify-center flex-wrap">
-                    <button
-                      onClick={() => handleTambahPengeluaran(t)}
-                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                    >
-                      💰 Tambah Pengeluaran
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const res = await fetch(
-                          `http://localhost:3000/api/transaksi/${t.id}`
-                        );
-                        const data = await res.json();
-                        setEditData(data);
-                        setShowModal(true);
-                      }}
-                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                    >
-                      🗑️ Hapus
-                    </button>
-                  </div>
+            {transaksi.length === 0 ? (
+              <tr>
+                <td colSpan="9" className="text-center text-gray-500 py-6">
+                  Tidak ada transaksi.
                 </td>
               </tr>
-            ))}
+            ) : (
+              transaksi.map((t, i) => (
+                <tr key={i} className="border-t hover:bg-gray-50 transition">
+                  <td className="p-3 font-semibold">{t.kode_transaksi}</td>
+                  <td className="p-3">{t.klien}</td>
+                  <td className="p-3">
+                    {new Date(t.tanggal).toLocaleDateString("id-ID")}
+                  </td>
+                  <td className="p-3">{t.keterangan || "-"}</td>
+                  <td className="p-3">
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${
+                        t.status === "Selesai"
+                          ? "bg-green-100 text-green-700"
+                          : t.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-green-600 font-semibold">
+                    Rp {Number(t.total_pendapatan || 0).toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-3 text-red-600 font-semibold">
+                    Rp{" "}
+                    {Number(t.total_pengeluaran || 0).toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-3 text-blue-700 font-semibold">
+                    Rp {Number(t.total_untung || 0).toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-3">
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      <button
+                        onClick={() => handleTambahPengeluaran(t)}
+                        className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
+                      >
+                        💰 Tambah Pengeluaran
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(
+                            `${BASE_URL}/api/transaksi/${t.id}`
+                          );
+                          const data = await res.json();
+                          setEditData(data);
+                          setShowModal(true);
+                        }}
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                      >
+                        🗑️ Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

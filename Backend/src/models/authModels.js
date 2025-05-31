@@ -1,10 +1,8 @@
 const db = require('./db');
 
-const findUserByUsername = (username, callback) => {
-  db.query('SELECT * FROM authentication WHERE username = ?', [username], (err, result) => {
-    if (err) return callback(err);
-    callback(null, result[0]); // ambil satu user
-  });
-};
+async function findUserByUsername(username) {
+  const [result] = await db.query('SELECT * FROM authentication WHERE username = ?', [username]);
+  return result[0]; // hanya ambil satu
+}
 
 module.exports = { findUserByUsername };

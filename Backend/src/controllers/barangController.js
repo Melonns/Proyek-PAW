@@ -1,4 +1,4 @@
-const barangModel = require('../models/BarangModel');
+const barangModel = require('../models/barangModel');
 
 exports.getAllBarang = async (req, res) => {
     try {

@@ -6,6 +6,7 @@ import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
 import Swal from "sweetalert2";
 
 export default function Dashboard() {
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const [transaksi, setTransaksi] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +15,11 @@ export default function Dashboard() {
   const [editData, setEditData] = useState(null);
   const [showPengeluaranModal, setShowPengeluaranModal] = useState(false);
   const [selectedTransaksiId, setSelectedTransaksiId] = useState(null);
+  const [selectedTanggal, setSelectedTanggal] = useState(null);
   const [total, setTotal] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/transaksi")
+    fetch(`${BASE_URL}/api/transaksi`)
       .then((res) => res.json())
       .then((data) => {
         console.log("DATA:", data);
@@ -31,7 +33,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/transaksi")
+    fetch(`${BASE_URL}/api/transaksi`)
       .then((res) => res.json())
       .then((data) => {
         setTransaksi(data);
@@ -56,7 +58,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/transaksi")
+    fetch(`${BASE_URL}/api/transaksi`)
       .then((res) => res.json())
       .then((data) => {
         setTransaksi(data);
@@ -113,18 +115,17 @@ export default function Dashboard() {
 
   const handleDeleteTransaksi = (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-      fetch(`http://localhost:3000/api/transaksi/${id}`, {
+      fetch(`${BASE_URL}/api/transaksi/${id}`, {
         method: "DELETE",
       })
         .then((res) => {
           if (res.ok) {
-            setTransaksi(transaksi.filter((t) => t.id !== id));
             Swal.fire({
               icon: "success",
               title: "Transaksi Dihapus",
               text: "Transaksi berhasil dihapus.",
             }).then(() => {
-              window.location.reload();
+              window.location.reload(); // ✅ Baru reload setelah swal muncul
             });
           } else {
             console.error("Gagal menghapus transaksi.");
@@ -245,8 +246,8 @@ export default function Dashboard() {
                   onSubmit={(form) => {
                     const method = editData ? "PUT" : "POST";
                     const url = editData
-                      ? `http://localhost:3000/api/transaksi/${editData.id}`
-                      : `http://localhost:3000/api/transaksi`;
+                      ? `${BASE_URL}/api/transaksi/${editData.id}`
+                      : `${BASE_URL}/api/transaksi`;
 
                     fetch(url, {
                       method,
@@ -377,7 +378,7 @@ export default function Dashboard() {
                           <button
                             onClick={async () => {
                               const res = await fetch(
-                                `http://localhost:3000/api/transaksi/${t.id}`
+                                `${BASE_URL}/api/transaksi/${t.id}`
                               );
                               const data = await res.json();
                               setEditData(data); // <-- inilah yang akan dikirim ke FormTambahTransaksi

@@ -1,15 +1,10 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
+require('dotenv').config();
 
-const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',          // default XAMPP password biasanya kosong
-  database: 'mua_attire' // ganti sesuai nama database kamu
-});
+const pool = mysql.createPool(process.env.DATABASE_URL);
 
-connection.connect((err) => {
-  if (err) throw err;
-  console.log('🟢 Connected to MySQL!');
-});
+pool.query("SELECT 1")  // tes koneksi
+  .then(() => console.log("✅ DB Connected"))
+  .catch((err) => console.error("❌ DB Error:", err.message));
 
-module.exports = connection;
+module.exports = pool;

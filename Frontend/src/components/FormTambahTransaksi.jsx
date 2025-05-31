@@ -5,6 +5,7 @@ export default function FormTambahTransaksi({
   onClose,
   initialData,
 }) {
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const [form, setForm] = useState({
     kode_transaksi: "",
     tanggal: new Date().toISOString().slice(0, 10),
@@ -22,7 +23,7 @@ export default function FormTambahTransaksi({
   const [layananList, setLayananList] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/layanan")
+    fetch(`${BASE_URL}/api/layanan`)
       .then((res) => res.json())
       .then((data) => setLayananList(data))
       .catch((err) => console.error("Gagal fetch layanan:", err));

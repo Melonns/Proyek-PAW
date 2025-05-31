@@ -1,13 +1,8 @@
 const db = require('./db');
 
-const ambilSemuaLayanan = (callback) => {
-    const query = 'SELECT * FROM layanan ORDER BY id ASC';
-    db.query(query, (err, results) => {
-        if (err) return callback(err);
-        callback(null, results);
-    });
+async function ambilSemuaLayanan() {
+  const [results] = await db.query('SELECT * FROM layanan ORDER BY id ASC');
+  return results;
 }
 
-module.exports = {
-    ambilSemuaLayanan
-};
+module.exports = { ambilSemuaLayanan };

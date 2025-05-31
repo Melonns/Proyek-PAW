@@ -1,50 +1,87 @@
 const db = require("./db");
 
-// ===== Ambil semua transaksi lengkap dengan total pendapatan, pengeluaran, dan untung =====
-const getAllTransaksi = (callback) => {
-  const query = `
+// async function getAllTransaksi() {
+async function getAllTransaksi() {
+  const [transaksi] = await db.query(`
     SELECT 
       t.id, t.kode_transaksi, t.klien, t.tanggal, t.status,
-      GROUP_CONCAT(d.keterangan SEPARATOR ' + ') AS keterangan,
-      GROUP_CONCAT(l.nama SEPARATOR ' + ') AS layanan,
-      IFNULL(SUM(d.jumlah * d.harga), 0) AS total_pendapatan,
-      (
-        SELECT IFNULL(SUM(p.jumlah), 0)
-        FROM pengeluaran p
-        WHERE p.transaksi_id = t.id
-      ) AS total_pengeluaran,
-      (
-        IFNULL(SUM(d.jumlah * d.harga), 0) -
-        (
-          SELECT IFNULL(SUM(p.jumlah), 0)
-          FROM pengeluaran p
-          WHERE p.transaksi_id = t.id
-        )
-      ) AS total_untung
+      d.keterangan,
+      l.nama AS layanan,
+      d.jumlah,
+      d.harga,
+      d.jumlah * d.harga AS subtotal
     FROM transaksi t
     LEFT JOIN detail_transaksi d ON t.id = d.transaksi_id
     LEFT JOIN layanan l ON d.layanan_id = l.id
-    GROUP BY t.id
-    ORDER BY t.tanggal DESC;
-  `;
+    ORDER BY t.tanggal DESC
+  `);
 
-  db.query(query, (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
+  const [pengeluaran] = await db.query(`
+    SELECT transaksi_id, SUM(jumlah) AS total_pengeluaran
+    FROM pengeluaran
+    GROUP BY transaksi_id
+  `);
+
+  // === Gabungkan manual di JS
+  const pengeluaranMap = {};
+  pengeluaran.forEach(p => {
+    pengeluaranMap[p.transaksi_id] = p.total_pengeluaran;
   });
-};
 
-// ===== Rekap total per kategori layanan =====
-const getAllKategoriTotals = (callback) => {
-  const query = `
+  const grouped = {};
+
+  for (const row of transaksi) {
+    if (!grouped[row.id]) {
+      grouped[row.id] = {
+        id: row.id,
+        kode_transaksi: row.kode_transaksi,
+        klien: row.klien,
+        tanggal: row.tanggal,
+        status: row.status,
+        layanan: [],
+        keterangan: [],
+        total_pendapatan: 0,
+        total_pengeluaran: pengeluaranMap[row.id] || 0,
+        total_untung: 0,
+      };
+    }
+
+    if (row.layanan) grouped[row.id].layanan.push(row.layanan);
+    if (row.keterangan) grouped[row.id].keterangan.push(row.keterangan);
+    grouped[row.id].total_pendapatan += row.subtotal;
+  }
+
+  return Object.values(grouped).map(t => ({
+    ...t,
+    layanan: t.layanan.join(" + "),
+    keterangan: t.keterangan.join(" + "),
+    total_untung: t.total_pendapatan - t.total_pengeluaran,
+  }));
+}
+
+
+// models/transaksiModel.js
+// async function getAllTransaksi() {
+//   const [results] = await db.query(`
+//     SELECT 
+//       t.id, t.kode_transaksi, t.klien, t.tanggal, t.status,
+//       d.keterangan,
+//       l.nama AS layanan,
+//       d.jumlah * d.harga AS total
+//     FROM transaksi t
+//     LEFT JOIN detail_transaksi d ON t.id = d.transaksi_id
+//     LEFT JOIN layanan l ON d.layanan_id = l.id
+//     ORDER BY t.tanggal DESC
+//     LIMIT 10
+//   `);
+//   return results;
+// }
+
+async function getAllKategoriTotals() {
+  const [results] = await db.query(`
     SELECT 
-      -- Total pengeluaran
       (SELECT IFNULL(SUM(p.jumlah), 0) FROM pengeluaran p) AS total_pengeluaran,
-
-      -- Total pendapatan kotor
       SUM(d.jumlah * d.harga) AS total_pendapatan_kotor,
-
-      -- Pendapatan bersih per kategori
       IFNULL((
         SUM(CASE WHEN l.nama = 'MUA' THEN d.jumlah * d.harga ELSE 0 END) -
         (
@@ -53,7 +90,6 @@ const getAllKategoriTotals = (callback) => {
           (SELECT IFNULL(SUM(p.jumlah), 0) FROM pengeluaran p)
         )
       ), 0) AS total_mua,
-
       IFNULL((
         SUM(CASE WHEN l.nama = 'Foto' THEN d.jumlah * d.harga ELSE 0 END) -
         (
@@ -62,7 +98,6 @@ const getAllKategoriTotals = (callback) => {
           (SELECT IFNULL(SUM(p.jumlah), 0) FROM pengeluaran p)
         )
       ), 0) AS total_foto,
-
       IFNULL((
         SUM(CASE WHEN l.nama = 'Sewa Baju' THEN d.jumlah * d.harga ELSE 0 END) -
         (
@@ -71,241 +106,157 @@ const getAllKategoriTotals = (callback) => {
           (SELECT IFNULL(SUM(p.jumlah), 0) FROM pengeluaran p)
         )
       ), 0) AS total_sewa_baju,
-
-      -- Jumlah transaksi per kategori
       COUNT(DISTINCT CASE WHEN l.nama = 'MUA' THEN t.id END) AS jumlah_mua,
       COUNT(DISTINCT CASE WHEN l.nama = 'Foto' THEN t.id END) AS jumlah_foto,
       COUNT(DISTINCT CASE WHEN l.nama = 'Sewa Baju' THEN t.id END) AS jumlah_sewa_baju,
-
-      -- Total pendapatan bersih
       IFNULL(SUM(d.jumlah * d.harga) - (SELECT IFNULL(SUM(p.jumlah), 0) FROM pengeluaran p), 0) AS total_semua,
-
-      -- Total jumlah transaksi
       COUNT(DISTINCT t.id) AS jumlah_transaksi
     FROM detail_transaksi d
     JOIN layanan l ON d.layanan_id = l.id
     JOIN transaksi t ON d.transaksi_id = t.id
-  `;
+  `);
+  return results[0];
+}
 
-  db.query(query, (err, results) => {
-    if (err) return callback(err);
-    callback(null, results[0]);
-  });
-};
+async function getTransaksiById(id) {
+  const [results] = await db.query(
+    `SELECT id, kode_transaksi, klien, tanggal, status FROM transaksi WHERE id = ?`,
+    [id]
+  );
+  return results;
+}
 
-// ===== Ambil 1 transaksi + semua detail layanan & pengeluarannya =====
-const getTransaksiById = (id, callback) => {
-  const query = `
-    SELECT 
-      t.id, t.kode_transaksi, t.klien, t.tanggal, t.status
-    FROM transaksi t
-    WHERE t.id = ?
-  `;
+async function getDetailByTransaksiId(transaksi_id) {
+  const [results] = await db.query(
+    `SELECT d.layanan_id, d.jumlah, d.harga, d.keterangan, l.nama AS layanan_nama
+     FROM detail_transaksi d
+     JOIN layanan l ON d.layanan_id = l.id
+     WHERE d.transaksi_id = ?`,
+    [transaksi_id]
+  );
+  return results;
+}
 
-  db.query(query, [id], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
-  });
-};
+async function getPengeluaranByTransaksiId(transaksi_id) {
+  const [results] = await db.query(
+    `SELECT * FROM pengeluaran WHERE transaksi_id = ? ORDER BY tanggal ASC`,
+    [transaksi_id]
+  );
+  return results;
+}
 
-// ===== Ambil detail transaksi berdasarkan transaksi ID =====
-const getDetailByTransaksiId = (transaksi_id, callback) => {
-  const query = `
-    SELECT 
-      d.layanan_id, 
-      d.jumlah, 
-      d.harga, 
-      d.keterangan,
-      l.nama AS layanan_nama
-    FROM detail_transaksi d
-    JOIN layanan l ON d.layanan_id = l.id
-    WHERE d.transaksi_id = ?
-  `;
+// Alias
+const getPengeluaranByTanggal = getPengeluaranByTransaksiId;
 
-  db.query(query, [transaksi_id], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
-  });
-};
-
-// ===== Ambil pengeluaran berdasarkan transaksi ID (untuk compatibility) =====
-const getPengeluaranByTanggal = (transaksi_id, callback) => {
-  // Fungsi ini sebenarnya sama dengan getPengeluaranByTransaksiId
-  getPengeluaranByTransaksiId(transaksi_id, callback);
-};
-
-// ===== Tambah transaksi + detail_transaksi =====
-const insertTransaksi = (data, callback) => {
+async function insertTransaksi(data) {
   const { kode_transaksi, tanggal, klien, status, detail } = data;
 
-  // Cek duplikat kode_transaksi
-  db.query(
+  const [[{ count }]] = await db.query(
     `SELECT COUNT(*) AS count FROM transaksi WHERE kode_transaksi = ?`,
-    [kode_transaksi],
-    (err, result) => {
-      if (err) return callback(err);
-      if (result[0].count > 0) {
-        return callback(null, { message: "Kode transaksi sudah digunakan." });
-      }
-
-      // Insert transaksi
-      db.query(
-        `INSERT INTO transaksi (kode_transaksi, tanggal, klien, status)
-         VALUES (?, ?, ?, ?)`,
-        [kode_transaksi, tanggal, klien, status],
-        (err, result) => {
-          if (err) return callback(err);
-          const transaksiId = result.insertId;
-
-          const values = detail.map((item) => [
-            transaksiId,
-            item.layanan_id,
-            item.jumlah,
-            item.harga,
-            item.keterangan || null,
-          ]);
-
-          db.query(
-            `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah, harga, keterangan) VALUES ?`,
-            [values],
-            (err2) => {
-              if (err2) return callback(err2);
-
-              // Ambil nama layanan berdasarkan ID
-              const layananIds = detail.map((item) => item.layanan_id);
-              db.query(
-                `SELECT id, nama FROM layanan WHERE id IN (?)`,
-                [layananIds],
-                (err3, layananResults) => {
-                  if (err3) return callback(err3);
-
-                  const layananMap = {};
-                  layananResults.forEach((l) => {
-                    layananMap[l.id] = l.nama;
-                  });
-
-                  const total = detail.reduce(
-                    (acc, d) => acc + d.jumlah * d.harga,
-                    0
-                  );
-                  const layananText = detail
-                    .map((d) => layananMap[d.layanan_id])
-                    .join(" + ");
-
-                  callback(null, {
-                    transaksiBaru: {
-                      id: transaksiId,
-                      kode_transaksi,
-                      tanggal,
-                      klien,
-                      status,
-                      layanan: layananText,
-                      total,
-                      inisial: klien[0]?.toUpperCase() || "?",
-                    },
-                  });
-                }
-              );
-            }
-          );
-        }
-      );
-    }
+    [kode_transaksi]
   );
-};
+  if (count > 0) {
+    return { message: "Kode transaksi sudah digunakan." };
+  }
 
-// ===== Update transaksi + overwrite detail =====
-const updateTransaksi = (id, data, callback) => {
+  const [result] = await db.query(
+    `INSERT INTO transaksi (kode_transaksi, tanggal, klien, status)
+     VALUES (?, ?, ?, ?)`,
+    [kode_transaksi, tanggal, klien, status]
+  );
+
+  const transaksiId = result.insertId;
+  const values = detail.map((item) => [
+    transaksiId,
+    item.layanan_id,
+    item.jumlah,
+    item.harga,
+    item.keterangan || null,
+  ]);
+
+  await db.query(
+    `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah, harga, keterangan) VALUES ?`,
+    [values]
+  );
+
+  const [layananResults] = await db.query(
+    `SELECT id, nama FROM layanan WHERE id IN (?)`,
+    [detail.map((item) => item.layanan_id)]
+  );
+
+  const layananMap = {};
+  layananResults.forEach((l) => {
+    layananMap[l.id] = l.nama;
+  });
+
+  const total = detail.reduce((acc, d) => acc + d.jumlah * d.harga, 0);
+  const layananText = detail.map((d) => layananMap[d.layanan_id]).join(" + ");
+
+  return {
+    transaksiBaru: {
+      id: transaksiId,
+      kode_transaksi,
+      tanggal,
+      klien,
+      status,
+      layanan: layananText,
+      total,
+      inisial: klien[0]?.toUpperCase() || "?",
+    },
+  };
+}
+
+async function updateTransaksi(id, data) {
   const { tanggal, klien, status, detail } = data;
 
-  db.query(
+  await db.query(
     `UPDATE transaksi SET tanggal = ?, klien = ?, status = ? WHERE id = ?`,
-    [tanggal, klien, status, id],
-    (err) => {
-      if (err) return callback(err);
-
-      db.query(
-        `DELETE FROM detail_transaksi WHERE transaksi_id = ?`,
-        [id],
-        (err2) => {
-          if (err2) return callback(err2);
-
-          const values = detail.map((item) => [
-            id,
-            item.layanan_id,
-            item.jumlah,
-            item.harga,
-            item.keterangan || null,
-          ]);
-
-          db.query(
-            `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah, harga, keterangan) VALUES ?`,
-            [values],
-            (err3) => {
-              if (err3) return callback(err3);
-              callback(null, { id });
-            }
-          );
-        }
-      );
-    }
+    [tanggal, klien, status, id]
   );
-};
 
-// ===== Hapus transaksi + detail + pengeluaran =====
-const deleteTransaksi = (id, callback) => {
-  db.query(`DELETE FROM pengeluaran WHERE transaksi_id = ?`, [id], (err1) => {
-    if (err1) return callback(err1);
+  await db.query(`DELETE FROM detail_transaksi WHERE transaksi_id = ?`, [id]);
 
-    db.query(
-      `DELETE FROM detail_transaksi WHERE transaksi_id = ?`,
-      [id],
-      (err2) => {
-        if (err2) return callback(err2);
+  const values = detail.map((item) => [
+    id,
+    item.layanan_id,
+    item.jumlah,
+    item.harga,
+    item.keterangan || null,
+  ]);
 
-        db.query(`DELETE FROM transaksi WHERE id = ?`, [id], (err3) => {
-          if (err3) return callback(err3);
-          callback(null, { id });
-        });
-      }
-    );
-  });
-};
+  await db.query(
+    `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah, harga, keterangan) VALUES ?`,
+    [values]
+  );
 
-// ===== Tambah pengeluaran untuk transaksi =====
-const insertPengeluaran = (data, callback) => {
+  return { id };
+}
+
+async function deleteTransaksi(id) {
+  await db.query(`DELETE FROM pengeluaran WHERE transaksi_id = ?`, [id]);
+  await db.query(`DELETE FROM detail_transaksi WHERE transaksi_id = ?`, [id]);
+  await db.query(`DELETE FROM transaksi WHERE id = ?`, [id]);
+  return { id };
+}
+
+async function insertPengeluaran(data) {
   const { transaksi_id, tanggal, keterangan, jumlah, kategori } = data;
 
-  db.query(
+  const [result] = await db.query(
     `INSERT INTO pengeluaran (transaksi_id, tanggal, keterangan, jumlah, kategori)
      VALUES (?, ?, ?, ?, ?)`,
-    [transaksi_id, tanggal, keterangan, jumlah, kategori],
-    (err, result) => {
-      if (err) return callback(err);
-      callback(null, { id: result.insertId });
-    }
+    [transaksi_id, tanggal, keterangan, jumlah, kategori]
   );
-};
 
-// ===== Ambil pengeluaran berdasarkan transaksi ID =====
-const getPengeluaranByTransaksiId = (transaksi_id, callback) => {
-  db.query(
-    `SELECT * FROM pengeluaran WHERE transaksi_id = ? ORDER BY tanggal ASC`,
-    [transaksi_id],
-    (err, results) => {
-      if (err) return callback(err);
-      callback(null, results);
-    }
-  );
-};
+  return { id: result.insertId };
+}
 
-// Export semua fungsi
 module.exports = {
   getAllTransaksi,
   getAllKategoriTotals,
   getTransaksiById,
-  getDetailByTransaksiId, // ✅ Ditambahkan
-  getPengeluaranByTanggal, // ✅ Ditambahkan
+  getDetailByTransaksiId,
+  getPengeluaranByTanggal,
   insertTransaksi,
   updateTransaksi,
   deleteTransaksi,
