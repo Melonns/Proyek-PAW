@@ -1,79 +1,93 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
 
 export default function Dashboard() {
-  const stats = [
-    {
-      label: "Total Transaksi Sewa Baju",
-      total: "Rp 15.2M",
-      jumlah: "42 transaksi",
-      icon: "👗",
-      bg: "bg-pink-100",
-    },
-    {
-      label: "Total Transaksi MUA",
-      total: "Rp 18.5M",
-      jumlah: "35 transaksi",
-      icon: "🎨",
-      bg: "bg-purple-100",
-    },
-    {
-      label: "Total Transaksi Photo",
-      total: "Rp 12.8M",
-      jumlah: "28 transaksi",
-      icon: "📷",
-      bg: "bg-blue-100",
-    },
-    {
-      label: "Total Semua Transaksi",
-      total: "Rp 46.5M",
-      jumlah: "105 transaksi",
-      icon: "💵",
-      bg: "bg-green-100",
-    },
-  ];
+  const navigate = useNavigate();
+  const [transaksi, setTransaksi] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [kategoriStats, setKategoriStats] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const transaksi = [
-    {
-      id: "TRX-001",
-      klien: "Sarah Johnson",
-      inisial: "SJ",
-      layanan: "MUA",
-      jumlah: 850000,
-      tanggal: "22 Des 2024",
-      waktu: "14:30",
-      status: "Selesai",
-    },
-    {
-      id: "TRX-002",
-      klien: "Maria Garcia",
-      inisial: "MG",
-      layanan: "Sewa Baju",
-      jumlah: 450000,
-      tanggal: "22 Des 2024",
-      waktu: "13:15",
-      status: "Selesai",
-    },
-    {
-      id: "TRX-003",
-      klien: "Lisa Chen",
-      inisial: "LC",
-      layanan: "Photo Session",
-      jumlah: 750000,
-      tanggal: "21 Des 2024",
-      waktu: "16:45",
-      status: "Selesai",
-    },
-    {
-      id: "TRX-004",
-      klien: "Anna Putri",
-      inisial: "AP",
-      layanan: "MUA + Sewa Baju",
-      jumlah: 1200000,
-      tanggal: "21 Des 2024",
-      waktu: "12:00",
-      status: "Selesai",
-    },
-  ];
+  useEffect(() => {
+    fetch("http://localhost:3000/api/transaksi")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("DATA:", data);
+        setTransaksi(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Gagal fetch transaksi:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch("http://localhost:3000/api/transaksi/statistik")
+      .then((res) => res.json())
+      .then((data) => setKategoriStats(data))
+      .catch((err) => console.error("Gagal fetch statistik:", err));
+  }, []);
+
+  const handleDeleteTransaksi = (id) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+      fetch(`http://localhost:3000/api/transaksi/${id}`, {
+        method: "DELETE",
+      })
+        .then((res) => {
+          if (res.ok) {
+            setTransaksi(transaksi.filter((t) => t.id !== id));
+          } else {
+            console.error("Gagal menghapus transaksi.");
+          }
+        })
+        .catch((err) => {
+          console.error("Terjadi kesalahan:", err);
+        });
+    }
+  };
+
+  const stats = kategoriStats
+    ? [
+        {
+          label: "Total Transaksi Sewa Baju",
+          total: `Rp ${Number(kategoriStats.total_sewa_baju).toLocaleString(
+            "id-ID"
+          )}`,
+          jumlah: `${kategoriStats.jumlah_sewa_baju} transaksi`,
+          icon: "👗",
+          bg: "bg-pink-100",
+        },
+        {
+          label: "Total Transaksi MUA",
+          total: `Rp ${Number(kategoriStats.total_mua).toLocaleString(
+            "id-ID"
+          )}`,
+          jumlah: `${kategoriStats.jumlah_mua} transaksi`,
+          icon: "🎨",
+          bg: "bg-purple-100",
+        },
+        {
+          label: "Total Transaksi Photo",
+          total: `Rp ${Number(kategoriStats.total_foto).toLocaleString(
+            "id-ID"
+          )}`,
+          jumlah: `${kategoriStats.jumlah_foto} transaksi`,
+          icon: "📷",
+          bg: "bg-blue-100",
+        },
+        {
+          label: "Total Semua Transaksi",
+          total: `Rp ${Number(kategoriStats.total_semua).toLocaleString(
+            "id-ID"
+          )}`,
+          jumlah: `${kategoriStats.jumlah_transaksi} transaksi`,
+          icon: "💵",
+          bg: "bg-green-100",
+        },
+      ]
+    : [];
 
   return (
     <div className="p-6 bg-pink-50 min-h-screen">
@@ -86,99 +100,142 @@ export default function Dashboard() {
 
       {/* Stat boxes */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {stats.map((s, i) => (
-          <div key={i} className={`rounded-lg p-4 shadow ${s.bg}`}>
-            <div className="text-3xl mb-2">{s.icon}</div>
-            <h2 className="text-xl font-semibold">{s.total}</h2>
-            <p className="text-sm text-gray-700">{s.jumlah}</p>
-            <p className="text-sm text-gray-600 mb-2">{s.label}</p>
-            <button
-              onClick={() =>
-                navigate(
-                  `/transaksi-detail/${s.label
-                    .replaceAll(" ", "-")
-                    .toLowerCase()}`
-                )
-              }
-              className="text-sm bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600"
-            >
-              Lihat Detail
-            </button>
-          </div>
-        ))}
+        {stats.length > 0 ? (
+          stats.map((s, i) => (
+            <div key={i} className={`rounded-lg p-4 shadow ${s.bg}`}>
+              <div className="text-3xl mb-2">{s.icon}</div>
+              <h2 className="text-xl font-semibold">{s.total}</h2>
+              <p className="text-sm text-gray-700">{s.jumlah}</p>
+              <p className="text-sm text-gray-600 mb-2">{s.label}</p>
+              <button
+                onClick={() =>
+                  navigate(
+                    `/transaksi-detail/${s.label
+                      .replaceAll(" ", "-")
+                      .toLowerCase()}`
+                  )
+                }
+                className="text-sm bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600"
+              >
+                Lihat Detail
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">Memuat statistik...</p>
+        )}
       </div>
 
       {/* Riwayat transaksi */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold mb-4">
-            Riwayat Transaksi Terkini
-          </h2>
-          <button className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            ➕ Tambah Transaksi
-          </button>
-        </div>
+      {loading ? (
+        <p className="text-gray-500">Memuat data transaksi...</p>
+      ) : (
         <div className="overflow-auto">
-          <table className="w-full text-left min-w-[1000px] text-sm">
-            <thead className="bg-gray-100 text-gray-600 text-sm">
-              <tr>
-                <th className="p-3">ID Transaksi</th>
-                <th className="p-3">Klien</th>
-                <th className="p-3">Layanan</th>
-                <th className="p-3">Jumlah</th>
-                <th className="p-3">Tanggal & Waktu</th>
-                <th className="p-3">Status</th>
-                <th className="px-2 py-2 w-[120px]">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transaksi.map((t, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-3 font-medium">{t.id}</td>
-                  <td className="p-3 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center text-sm font-bold">
-                      {t.inisial}
-                    </div>
-                    {t.klien}
-                  </td>
-                  <td className="p-3">{t.layanan}</td>
-                  <td className="p-3 text-green-600 font-semibold">
-                    Rp {t.jumlah.toLocaleString()}
-                  </td>
-                  <td className="p-3 text-sm text-gray-700">
-                    {t.tanggal}
-                    <br />
-                    {t.waktu}
-                  </td>
-                  <td className="p-3">
-                    <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
-                      {t.status}
-                    </span>
-                  </td>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                Riwayat Transaksi Terkini
+              </h2>
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                ➕ Tambah Transaksi
+              </button>
+            </div>
+            <div className="overflow-auto">
+              {showModal && (
+                <ModalTambahTransaksi
+                  onClose={() => setShowModal(false)}
+                  onSubmit={(form) => {
+                    fetch("http://localhost:3000/api/transaksi", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(form),
+                    })
+                      .then((res) => res.json())
+                      .then(() => {
+                        setShowModal(false);
+                        window.location.reload();
+                      })
+                      .catch((err) => {
+                        console.error("Gagal simpan:", err);
+                      });
+                  }}
+                />
+              )}
+              <table className="w-full text-sm text-center">
+                <thead className="bg-gray-100 text-gray-600">
+                  <tr>
+                    <th className="p-3 align-middle">ID Transaksi</th>
+                    <th className="p-3 align-middle">Klien</th>
+                    <th className="p-3 align-middle">Layanan</th>
+                    <th className="p-3 align-middle">Jumlah</th>
+                    <th className="p-3 align-middle">Tanggal & Waktu</th>
+                    <th className="p-3 align-middle">Status</th>
+                    <th className="p-3 align-middle">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transaksi.map((t, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="p-3 align-middle">{t.id}</td>
 
-                  <td className="p-3 flex gap-2">
-                    <button
-                      onClick={() => alert(`Edit ${t.id}`)}
-                      className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() =>
-                        confirm(`Hapus transaksi ${t.id}?`) &&
-                        alert(`Dihapus: ${t.id}`)
-                      }
-                      className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      🗑️ Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td className="p-3 align-middle">
+                        <div className="flex justify-center items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center text-sm font-bold">
+                            {t.inisial}
+                          </div>
+                          <span>{t.klien}</span>
+                        </div>
+                      </td>
+
+                      <td className="p-3 align-middle">{t.layanan}</td>
+
+                      <td className="p-3 align-middle text-green-600 font-semibold">
+                        Rp {Number(t.total || 0).toLocaleString("id-ID")}
+                      </td>
+
+                      <td className="p-3 align-middle text-sm text-gray-700">
+                        {new Date(t.tanggal).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </td>
+
+                      <td className="p-3 align-middle">
+                        <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+                          {t.status}
+                        </span>
+                      </td>
+
+                      <td className="p-3 align-middle">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => alert(`Edit ${t.id}`)}
+                            className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteTransaksi(t.id)
+                            }
+                            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
+                          >
+                            🗑️ Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

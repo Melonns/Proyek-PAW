@@ -5,6 +5,8 @@ const transaksiController = require('../controllers/transaksiController');
 // Ambil semua transaksi
 router.get('/', transaksiController.getAllTransaksi);
 
+router.get('/statistik', transaksiController.getStatistikKategori);
+
 // Ambil transaksi berdasarkan ID
 router.get('/:id', transaksiController.getTransaksiById);
 

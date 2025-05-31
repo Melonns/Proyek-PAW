@@ -1,4 +1,4 @@
-const db = require('./db');
+const db = require("./db");
 
 // Ambil semua transaksi + total dari detail_transaksi
 const getAllTransaksi = (callback) => {
@@ -19,25 +19,29 @@ const getAllTransaksi = (callback) => {
 };
 
 // Jumlah total untuk layanan tertentu (MUA, Sewa Baju, Foto)
-const getJumlahByLayanan = (namaLayanan, callback) => {
+const getAllKategoriTotals = (callback) => {
   const query = `
-    SELECT SUM(d.jumlah) AS total
+    SELECT 
+      -- Total uang per layanan
+      SUM(CASE WHEN l.nama = 'MUA' THEN d.jumlah ELSE 0 END) AS total_mua,
+      SUM(CASE WHEN l.nama = 'Foto' THEN d.jumlah ELSE 0 END) AS total_foto,
+      SUM(CASE WHEN l.nama = 'Sewa Baju' THEN d.jumlah ELSE 0 END) AS total_sewa_baju,
+      
+      -- Jumlah transaksi unik per layanan
+      COUNT(DISTINCT CASE WHEN l.nama = 'MUA' THEN t.id END) AS jumlah_mua,
+      COUNT(DISTINCT CASE WHEN l.nama = 'Foto' THEN t.id END) AS jumlah_foto,
+      COUNT(DISTINCT CASE WHEN l.nama = 'Sewa Baju' THEN t.id END) AS jumlah_sewa_baju,
+
+      -- Total semua
+      SUM(d.jumlah) AS total_semua,
+      COUNT(DISTINCT t.id) AS jumlah_transaksi
     FROM detail_transaksi d
     JOIN layanan l ON d.layanan_id = l.id
-    WHERE l.nama = ?
+    JOIN transaksi t ON d.transaksi_id = t.id
   `;
-  db.query(query, [namaLayanan], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results[0].total || 0);
-  });
-};
-
-// Jumlah semua transaksi (tanpa filter)
-const getJumlahSemua = (callback) => {
-  const query = `SELECT SUM(jumlah) AS total_semua FROM detail_transaksi`;
   db.query(query, (err, results) => {
     if (err) return callback(err);
-    callback(null, results[0].total_semua || 0);
+    callback(null, results[0]);
   });
 };
 
@@ -70,7 +74,11 @@ const insertTransaksi = (data, callback) => {
       const transaksiId = result.insertId;
 
       // Insert ke detail_transaksi
-      const values = detail.map(item => [transaksiId, item.layanan_id, item.jumlah]);
+      const values = detail.map((item) => [
+        transaksiId,
+        item.layanan_id,
+        item.jumlah,
+      ]);
       db.query(
         `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah) VALUES ?`,
         [values],
@@ -94,38 +102,54 @@ const updateTransaksi = (id, data, callback) => {
       if (err) return callback(err);
 
       // Hapus detail lama
-      db.query(`DELETE FROM detail_transaksi WHERE transaksi_id = ?`, [id], (err2) => {
-        if (err2) return callback(err2);
+      db.query(
+        `DELETE FROM detail_transaksi WHERE transaksi_id = ?`,
+        [id],
+        (err2) => {
+          if (err2) return callback(err2);
 
-        // Insert detail baru
-        const values = detail.map(item => [id, item.layanan_id, item.jumlah]);
-        db.query(
-          `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah) VALUES ?`,
-          [values],
-          (err3) => {
-            if (err3) return callback(err3);
-            callback(null, { id });
-          }
-        );
-      });
+          // Insert detail baru
+          const values = detail.map((item) => [
+            id,
+            item.layanan_id,
+            item.jumlah,
+          ]);
+          db.query(
+            `INSERT INTO detail_transaksi (transaksi_id, layanan_id, jumlah) VALUES ?`,
+            [values],
+            (err3) => {
+              if (err3) return callback(err3);
+              callback(null, { id });
+            }
+          );
+        }
+      );
     }
   );
 };
 
 // Hapus transaksi (akan auto hapus detail via FK CASCADE)
 const deleteTransaksi = (id, callback) => {
-  db.query(`DELETE FROM transaksi WHERE id = ?`, [id], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
-  });
+  db.query(
+    `DELETE FROM detail_transaksi WHERE transaksi_id = ?`,
+    [id],
+    (err1, result1) => {
+      if (err1) return callback(err1);
+
+      db.query(`DELETE FROM transaksi WHERE id = ?`, [id], (err2, result2) => {
+        if (err2) return callback(err2);
+
+        callback(null, { detail: result1, transaksi: result2 });
+      });
+    }
+  );
 };
 
 module.exports = {
   getAllTransaksi,
-  getJumlahByLayanan,
-  getJumlahSemua,
+  getAllKategoriTotals,
   getTransaksiById,
   insertTransaksi,
   updateTransaksi,
-  deleteTransaksi
+  deleteTransaksi,
 };

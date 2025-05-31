@@ -11,6 +11,18 @@ exports.getAllTransaksi = async (req, res) => {
   });
 };
 
+// Ambil total kategori: MUA, Foto, Sewa Baju, Semua
+exports.getStatistikKategori = async (req, res) => {
+  transaksiModel.getAllKategoriTotals((err, result) => {
+    if (err) {
+      console.error('❌ Gagal mengambil statistik kategori:', err);
+      return res.status(500).json({ error: 'Gagal Mengambil Statistik' });
+    }
+    res.json(result); // return: { total_mua, total_foto, total_sewa_baju, total_semua }
+  });
+};
+
+
 // Ambil transaksi berdasarkan ID
 exports.getTransaksiById = async (req, res) => {
   const id = req.params.id;
