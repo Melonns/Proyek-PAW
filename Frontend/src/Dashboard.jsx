@@ -295,7 +295,6 @@ export default function Dashboard() {
               {showPengeluaranModal && (
                 <ModalTambahPengeluaran
                   transaksiId={selectedTransaksiId}
-                  tanggalTransaksi={selectedTanggal}
                   onClose={() => {
                     setShowPengeluaranModal(false);
                     setSelectedTransaksiId(null);
@@ -367,7 +366,7 @@ export default function Dashboard() {
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => {
-                              setSelectedTransaksiId(t.id); // ID transaksi yang dipilih
+                              setSelectedTransaksiId(t.id);
                               setShowPengeluaranModal(true);
                             }}
                             className="text-sm bg-yellow-500 text-white px-3 py-2 rounded hover:bg-yellow-600"
@@ -402,6 +401,16 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {showPengeluaranModal && (
+        <ModalTambahPengeluaran
+          transaksiId={selectedTransaksiId}
+          onClose={() => {
+            setShowPengeluaranModal(false);
+            setSelectedTransaksiId(null);
+          }}
+        />
       )}
     </div>
   );
