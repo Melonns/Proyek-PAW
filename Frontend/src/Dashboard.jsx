@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ModalTambahTransaksi from "./components/ModalTambahTransaksi";
 import ModalTambahPengeluaran from "./components/ModalTambahPengeluaran";
+import ModalLaporan from "./components/ModalLaporan";
 
 import Swal from "sweetalert2";
 
@@ -19,6 +20,8 @@ export default function Dashboard() {
   const [total, setTotal] = useState(null);
   const [transaksiSummary, setTransaksiSummary] = useState([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
+  const [showModalLaporan, setShowModalLaporan] = useState(false);
+  const [showModalTransaksi, setShowModalTransaksi] = useState(false);
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/transaksi`)
@@ -243,13 +246,22 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold">
                 Riwayat Transaksi Terkini
               </h2>
-              <button
-                onClick={() => setShowModal(true)}
-                className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                ➕ Tambah Transaksi
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowModalLaporan(true)}
+                  className="text-xs bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                >
+                  📄 Filter Laporan
+                </button>
+                <button
+                  onClick={() => setShowModalTransaksi(true)}
+                  className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  ➕ Tambah Transaksi
+                </button>
+              </div>
             </div>
+
             <div className="overflow-auto">
               {showModal && (
                 <ModalTambahTransaksi
@@ -318,6 +330,11 @@ export default function Dashboard() {
                   }}
                 />
               )}
+
+              <ModalLaporan
+                show={showModalLaporan}
+                onClose={() => setShowModalLaporan(false)}
+              />
 
               <table className="w-full text-sm text-center">
                 <thead className="bg-gray-100 text-gray-600">
@@ -404,7 +421,9 @@ export default function Dashboard() {
                             ✏️ Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteTransaksi(t.transaksi_id)}
+                            onClick={() =>
+                              handleDeleteTransaksi(t.transaksi_id)
+                            }
                             className="text-sm bg-red-500 text-white px-3 py-2 rounded hover:bg-red-700"
                           >
                             🗑️ Hapus

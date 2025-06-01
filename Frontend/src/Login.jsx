@@ -38,19 +38,19 @@ export default function LoginPage() {
         <div className="text-center mb-6">
           <div className="text-blue-500 text-4xl mb-2">💙</div>
           <h1 className="text-2xl font-bold text-blue-600">MUA Attire</h1>
-          <p className="text-gray-600">Wardrobe & Outfit Booking Management</p>
+          <p className="text-gray-600">Wardrobe, Outfit, & Makeup Management</p>
         </div>
         <form onSubmit={handleLogin}>
           <h2 className="text-xl font-semibold text-center mb-4">Sign In</h2>
           <p className="text-center text-sm text-gray-500 mb-6">
-            Enter your credentials to access your account
+            Masukkan Kredensial Admin
           </p>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Username</label>
             <input
               type="text"
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your username"
+              placeholder="Masukkan username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -61,7 +61,7 @@ export default function LoginPage() {
             <input
               type="password"
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your password"
+              placeholder="Masukkan password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
