@@ -38,6 +38,23 @@ export default function ModalTambahPengeluaran({ transaksiId, onClose }) {
       const transaksi = await res.json();
       const tanggalTransaksi = transaksi.tanggal.slice(0, 10); // Ambil tanggal dalam format YYYY-MM-DD
 
+      const layananTransaksi = transaksi.detail.map((d) =>
+        d.layanan_nama.trim()
+      );
+
+      const kategoriTidakValid = pengeluaran.some(
+        (p) => !layananTransaksi.includes(p.kategori)
+      );
+
+      if (kategoriTidakValid) {
+        Swal.fire({
+          icon: "error",
+          title: "Kategori tidak sesuai",
+          text: "Kategori pengeluaran harus sesuai dengan layanan dalam transaksi ini.",
+        });
+        return;
+      }
+
       // Kirim data pengeluaran
       for (const p of pengeluaran) {
         await fetch(`${BASE_URL}/api/transaksi/${transaksiId}/pengeluaran`, {
