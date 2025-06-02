@@ -254,7 +254,7 @@ export default function Dashboard() {
                   📄 Filter Laporan
                 </button>
                 <button
-                  onClick={() => setShowModalTransaksi(true)}
+                  onClick={() => setShowModal(true)}
                   className="text-xs bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
                   ➕ Tambah Transaksi
@@ -263,7 +263,7 @@ export default function Dashboard() {
             </div>
 
             <div className="overflow-auto">
-              {showModal && (
+              {(showModal||showModalTransaksi) && (
                 <ModalTambahTransaksi
                   onClose={() => {
                     setShowModal(false);
