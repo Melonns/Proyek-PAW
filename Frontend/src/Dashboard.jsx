@@ -21,7 +21,6 @@ export default function Dashboard() {
   const [transaksiSummary, setTransaksiSummary] = useState([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [showModalLaporan, setShowModalLaporan] = useState(false);
-  const [showModalTransaksi, setShowModalTransaksi] = useState(false);
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/transaksi`)
@@ -263,7 +262,7 @@ export default function Dashboard() {
             </div>
 
             <div className="overflow-auto">
-              {(showModal||showModalTransaksi) && (
+              {(showModal) && (
                 <ModalTambahTransaksi
                   onClose={() => {
                     setShowModal(false);
