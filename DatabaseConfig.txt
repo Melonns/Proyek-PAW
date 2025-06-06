@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS mua_attire;
 USE mua_attire;
 
--- Tabel user login (optional)
+
 CREATE TABLE IF NOT EXISTS authentication (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
